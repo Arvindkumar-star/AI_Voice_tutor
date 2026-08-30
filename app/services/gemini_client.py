@@ -22,4 +22,5 @@ AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 DATA_DIR = Path("data")
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-DB_PATH = Path("tutor.db")
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+DB_PATH = BASE_DIR / "tutor.db"
