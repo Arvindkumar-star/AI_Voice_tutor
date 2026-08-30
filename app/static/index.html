@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Voice Language Tutor</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <h1>🎙️ AI Voice Language Tutor</h1>
+  <p class="subtitle">Speak a sentence, get instant grammar feedback, hear it corrected.</p>
+
+  <div class="card">
+    <div class="field-row">
+      <div class="field">
+        <label for="username">Username</label>
+        <input type="text" id="username" placeholder="e.g. arvind">
+      </div>
+      <div class="field">
+        <label for="language">Language</label>
+        <input type="text" id="language" placeholder="e.g. English">
+      </div>
+    </div>
+
+    <div class="button-row">
+      <button id="recordBtn">🎤 Start Recording</button>
+      <button id="stopBtn" disabled>⏹ Stop Recording</button>
+      <span class="recording-dot" id="recDot"></span>
+      <button id="loadHistoryBtn" style="margin-left:auto;">📜 Load My History</button>
+    </div>
+
+    <p id="status"></p>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none;">
+    <div class="result-row">
+      <div class="result-label">You said</div>
+      <div class="result-text" id="transcript"></div>
+    </div>
+    <div class="result-row">
+      <div class="result-label">Corrected</div>
+      <div class="result-text corrected" id="corrected"></div>
+    </div>
+    <div class="result-row">
+      <div class="result-label">Feedback</div>
+      <div class="feedback-box" id="feedback"></div>
+    </div>
+    <audio id="responseAudio" controls></audio>
+  </div>
+
+  <div class="card">
+    <div class="result-label" style="margin-bottom:12px;">History</div>
+    <div id="historyList"></div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

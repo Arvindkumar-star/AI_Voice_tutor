@@ -86,11 +86,10 @@ def history(username: str, language: str):
 
 
 @app.get("/api/audio/{filename}")
-def get_audio(filename: str, background_tasks: BackgroundTasks):
+def get_audio(filename: str):
     path = AUDIO_DIR / filename
     if not path.exists():
         raise HTTPException(status_code=404, detail="Audio file not found.")
-    background_tasks.add_task(path.unlink, missing_ok=True)
     return FileResponse(path, media_type="audio/wav", filename=filename)
 
 
