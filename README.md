@@ -30,26 +30,30 @@ A voice-based language learning tool built for the "LLMs Meet Speech" take-home 
 
 ## Project Structure
 
+```text
 voice-tutor/
 ├── .env
 ├── .gitignore
 ├── requirements.txt
 ├── README.md
+│
 ├── app/
-│ ├── main.py
-│ ├── services/
-│ │ ├── gemini_client.py
-│ │ ├── tutor_pipeline.py
-│ │ └── progress_store.py
-│ └── static/
-│ ├── index.html
-│ ├── app.js
-│ └── style.css
-├── data/
-├── audio_output/
-└── tutor.db
-
----
+│   └── main.py
+│
+├── services/
+│   ├── gemini_client.py
+│   ├── tutor_pipeline.py
+│   └── progress_store.py
+│
+├── static/
+│   ├── index.html
+│   ├── app.js
+│   └── style.css
+│
+└── data/
+    ├── audio_output/
+    └── tutor.db
+```
 
 ## Setup
 
@@ -62,10 +66,15 @@ pip install -r requirements.txt
 
 
 3. **Create a `.env` file** in the project root:
+   
 GEMINI_API_KEY=your_key_here
+
 STT_MODEL=gemini-3.6-flash
+
 LLM_MODEL=gemini-3.6-flash
+
 TTS_MODEL=gemini-3.1-flash-tts-preview
+
 TTS_VOICE=Puck
 
 Get a key from [Google AI Studio](https://aistudio.google.com) → **Get API key**.
