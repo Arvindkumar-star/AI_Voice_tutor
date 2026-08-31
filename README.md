@@ -88,6 +88,8 @@ uvicorn app.main:app --reload
 
 ---
 
+**Live demo:** https://your-actual-render-url.onrender.com
+   
 ## How to Use
 
 1. Enter a **username** and a **target language** (e.g. "English", "Spanish").
@@ -122,7 +124,7 @@ For the **stretch goal**, every attempt is saved to a local SQLite database (`ap
 - The TTS model (`gemini-3.1-flash-tts-preview`) is in **preview status** as of this writing — behavior may change without notice.
 - No automated tests; all testing was manual, end-to-end.
 - Gemini model names changed mid-development (some initially-referenced models were deprecated during the build); `.env` values above reflect what is confirmed working as of submission.
-
+- **Live deployment (Render free tier) does not persist the SQLite database or generated audio files across server restarts/idle periods**, since Render's free tier doesn't support persistent disks. Within a single active session, history tracking works normally.
 ---
 
 ## AI Assistant Disclosure
