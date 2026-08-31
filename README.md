@@ -88,7 +88,7 @@ uvicorn app.main:app --reload
 
 ---
 
-**Live demo:** https://your-actual-render-url.onrender.com
+**Live demo:** https://ai-voice-tutor-71v0.onrender.com/
    
 ## How to Use
 
