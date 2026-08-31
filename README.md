@@ -1,7 +1,8 @@
 # AI Voice Language Tutor
 
-A voice-based language learning tool built for the "LLMs Meet Speech" take-home assessment (Project 4: AI Voice Language Tutor track). A learner records a sentence in a target language; the app transcribes it, uses an LLM to check grammar and word choice, and reads back a corrected version aloud — while tracking the learner's progress across sessions.
+An AI-powered voice tutor that helps learners practice a language by speaking. Record a sentence, and the app transcribes it, checks your grammar and word choice using an LLM, and speaks back a corrected version — while quietly tracking your progress across sessions to tailor its feedback over time.
 
+Built for the "LLMs Meet Speech" take-home assessment (Project 4: AI Voice Language Tutor).
 ---
 
 ## Features
