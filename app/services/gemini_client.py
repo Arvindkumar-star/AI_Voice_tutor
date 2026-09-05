@@ -12,9 +12,11 @@ if not api_key:
 client = genai.Client(api_key=api_key)
 
 MODEL_ALIASES = {
-    # Keep older environment variables from selecting retired models.
-    "gemini-2.5-flash": "gemini-3.6-flash",
-    "gemini-3.5-transcribe": "gemini-3.6-flash",
+    # Alias retired or strictly quota-limited models to reliable flash models
+    "gemini-2.5-flash": "gemini-3.5-flash",
+    "gemini-2.0-flash": "gemini-3.5-flash",
+    "gemini-3.6-flash": "gemini-3.5-flash",
+    "gemini-3.5-transcribe": "gemini-3.5-flash-lite",
     "gemini-2.5-flash-preview-tts": "gemini-3.1-flash-tts-preview",
 }
 
@@ -24,10 +26,10 @@ def configured_model(name: str, default: str) -> str:
     return MODEL_ALIASES.get(value, value)
 
 
-STT_MODEL = configured_model("STT_MODEL", "gemini-3.6-flash")
-LLM_MODEL = configured_model("LLM_MODEL", "gemini-3.6-flash")
+STT_MODEL = configured_model("STT_MODEL", "gemini-3.5-flash")
+LLM_MODEL = configured_model("LLM_MODEL", "gemini-3.5-flash")
 TTS_MODEL = configured_model("TTS_MODEL", "gemini-3.1-flash-tts-preview")
-STT_FALLBACK_MODEL = os.getenv("STT_FALLBACK_MODEL", "gemini-3.5-transcribe").strip()
+STT_FALLBACK_MODEL = configured_model("STT_FALLBACK_MODEL", "gemini-3.5-flash-lite")
 LLM_FALLBACK_MODEL = configured_model("LLM_FALLBACK_MODEL", "gemini-3.5-flash-lite")
 TTS_FALLBACK_MODEL = os.getenv("TTS_FALLBACK_MODEL", "gemini-2.5-flash-preview-tts").strip()
 TTS_VOICE = os.getenv("TTS_VOICE", "Puck")

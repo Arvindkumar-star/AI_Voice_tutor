@@ -7,28 +7,50 @@ const loadHistoryBtn = document.getElementById("loadHistoryBtn");
 const statusEl = document.getElementById("status");
 
 recordBtn.onclick = async () => {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  mediaRecorder = new MediaRecorder(stream);
-  audioChunks = [];
-
-  mediaRecorder.ondataavailable = (e) => {
-    if (e.data.size > 0) {
-      audioChunks.push(e.data);
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    
+    // Choose optimal audio MIME type supported by the browser
+    let options = {};
+    if (typeof MediaRecorder.isTypeSupported === "function") {
+      if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+        options = { mimeType: "audio/webm;codecs=opus" };
+      } else if (MediaRecorder.isTypeSupported("audio/webm")) {
+        options = { mimeType: "audio/webm" };
+      } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+        options = { mimeType: "audio/mp4" };
+      }
     }
-  };
-  mediaRecorder.onstop = sendRecording;
 
-  mediaRecorder.start(250);
-  statusEl.textContent = "Recording... speak now";
-  document.getElementById("recDot").classList.add("active");
-  recordBtn.disabled = true;
-  stopBtn.disabled = false;
+    mediaRecorder = new MediaRecorder(stream, options);
+    audioChunks = [];
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) {
+        audioChunks.push(e.data);
+      }
+    };
+    mediaRecorder.onstop = sendRecording;
+
+    mediaRecorder.start(250);
+    statusEl.textContent = "Recording... speak now";
+    document.getElementById("recDot").classList.add("active");
+    recordBtn.disabled = true;
+    stopBtn.disabled = false;
+  } catch (err) {
+    console.error("Microphone access failed:", err);
+    statusEl.textContent = "Could not access microphone. Please allow microphone permissions and try again.";
+  }
 };
 
 stopBtn.onclick = () => {
-  mediaRecorder.stop();
-  mediaRecorder.stream.getTracks().forEach((track) => track.stop());
-  statusEl.textContent = "Processing...";
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    mediaRecorder.stop();
+    if (mediaRecorder.stream) {
+      mediaRecorder.stream.getTracks().forEach((track) => track.stop());
+    }
+  }
+  statusEl.textContent = "Processing speech...";
   document.getElementById("recDot").classList.remove("active");
   recordBtn.disabled = false;
   stopBtn.disabled = true;
@@ -43,35 +65,42 @@ async function sendRecording() {
     return;
   }
 
-  const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+  const mimeType = (mediaRecorder && mediaRecorder.mimeType) || "audio/webm";
+  const audioBlob = new Blob(audioChunks, { type: mimeType });
 
+  if (audioBlob.size < 200) {
+    statusEl.textContent = "No audio detected. Please hold the record button while speaking and try again.";
+    return;
+  }
+
+  const ext = mimeType.includes("mp4") ? "m4a" : (mimeType.includes("ogg") ? "ogg" : (mimeType.includes("wav") ? "wav" : "webm"));
   const formData = new FormData();
   formData.append("username", username);
   formData.append("language", language);
-  formData.append("audio", audioBlob, "recording.webm");
+  formData.append("audio", audioBlob, `recording.${ext}`);
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-    const response = await fetch("/api/practice", {
-      method: "POST",
-      body: formData,
-    });
+      const response = await fetch("/api/practice", {
+        method: "POST",
+        body: formData,
+      });
 
-    const payload = await response.json().catch(() => ({}));
-    if (response.status === 503 && attempt === 0) {
-      statusEl.textContent = "Tutor service is busy; retrying...";
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      continue;
-    }
-    if (!response.ok) {
-      statusEl.textContent = "Error: " + (payload.detail || `Server error (${response.status})`);
+      const payload = await response.json().catch(() => ({}));
+      if (response.status === 503 && attempt === 0) {
+        statusEl.textContent = "Tutor service is busy; retrying in a moment...";
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+        continue;
+      }
+      if (!response.ok) {
+        statusEl.textContent = "Error: " + (payload.detail || `Server error (${response.status})`);
+        return;
+      }
+
+      console.log("RESPONSE DATA:", payload);
+      showResult(payload);
+      statusEl.textContent = "Done.";
       return;
-    }
-
-    console.log("RESPONSE DATA:", payload);
-    showResult(payload);
-    statusEl.textContent = "Done.";
-    return;
     } catch (error) {
       console.error("Practice request failed:", error);
       if (attempt === 1) {

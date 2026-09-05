@@ -25,11 +25,13 @@ MAX_GEMINI_ATTEMPTS = 5
 
 def generate_content_with_retry(*, model: str, fallback_model: str | None, contents, config=None):
     """Retry temporary errors, then use a lighter fallback model if needed."""
-    models = [model] if not fallback_model or fallback_model == model else [model, fallback_model]
+    models = [model]
+    if fallback_model and fallback_model != model and fallback_model not in models:
+        models.append(fallback_model)
     last_error = None
 
     for model_name in models:
-        for attempt in range(MAX_GEMINI_ATTEMPTS):
+        for attempt in range(3):
             try:
                 kwargs = {"model": model_name, "contents": contents}
                 if config is not None:
@@ -40,18 +42,17 @@ def generate_content_with_retry(*, model: str, fallback_model: str | None, conte
                 message = str(exc).upper()
                 retryable = any(
                     marker in message
-                    for marker in ("503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED")
+                    for marker in ("503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED", "DEADLINE_EXCEEDED")
                 )
                 if not retryable:
-                    raise
-                if attempt < MAX_GEMINI_ATTEMPTS - 1:
-                    delay = 2 ** (attempt + 1)
+                    break
+                if attempt < 2:
+                    delay = 1.5 ** (attempt + 1)
                     logger.warning(
-                        "Gemini model %s is temporarily unavailable; retrying in %ss (%s/%s)",
+                        "Gemini model %s is temporarily unavailable; retrying in %.1fs (%s/2)",
                         model_name,
                         delay,
                         attempt + 1,
-                        MAX_GEMINI_ATTEMPTS - 1,
                     )
                     time.sleep(delay)
 
@@ -72,26 +73,40 @@ def write_pcm_to_wav(filepath: Path, pcm_data: bytes,
 
 def transcribe_audio(audio_path: Path, language: str) -> str:
     audio_bytes = audio_path.read_bytes()
-    print("DEBUG - audio bytes length:", len(audio_bytes))
-
-    # TEMP: save a copy so we can listen to exactly what was sent
-    debug_copy = Path("data") / "debug_last_recording.webm"
-    debug_copy.write_bytes(audio_bytes)
-    print("DEBUG - saved copy to:", debug_copy)
+    if len(audio_bytes) < 100:
+        return ""
 
     suffix = audio_path.suffix.lower().replace(".", "")
-    mime_map = {"wav": "audio/wav", "mp3": "audio/mp3", "webm": "audio/webm", "m4a": "audio/mp4"}
+    mime_map = {"wav": "audio/wav", "mp3": "audio/mp3", "webm": "audio/webm", "m4a": "audio/mp4", "ogg": "audio/ogg"}
     mime_type = mime_map.get(suffix, "audio/webm")
+
+    prompt = (
+        f"You are a speech transcription engine. "
+        f"Transcribe all spoken words in this audio exactly as spoken in {language}. "
+        f"Transcribe whatever the user said even if there are pronunciation or grammar errors or words in another language. "
+        f"Return ONLY the verbatim spoken transcript text, nothing else."
+    )
 
     response = generate_content_with_retry(
         model=STT_MODEL,
         fallback_model=STT_FALLBACK_MODEL,
         contents=[
             types.Part.from_bytes(data=audio_bytes, mime_type=mime_type),
-            f"Transcribe the spoken {language} sentence exactly. Return only the raw transcript text, nothing else.",
+            prompt,
         ],
     )
-    return response.text.strip() if response.text else ""
+
+    text = ""
+    if response and hasattr(response, "text") and response.text:
+        text = response.text.strip()
+    elif response and hasattr(response, "candidates") and response.candidates:
+        parts = []
+        for part in response.candidates[0].content.parts:
+            if hasattr(part, "text") and part.text:
+                parts.append(part.text)
+        text = "".join(parts).strip()
+
+    return text
 
 
 def check_grammar(user_text: str, language: str, username: str) -> dict:
