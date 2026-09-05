@@ -12,10 +12,10 @@ if not api_key:
 client = genai.Client(api_key=api_key)
 
 MODEL_ALIASES = {
-    # Keep older Render environment variables from selecting retired models.
-    "gemini-3.5-transcribe": "gemini-2.5-flash",
-    "gemini-3.6-flash": "gemini-2.5-flash",
-    "gemini-3.1-flash-tts-preview": "gemini-2.5-flash-preview-tts",
+    # Keep older environment variables from selecting retired models.
+    "gemini-2.5-flash": "gemini-3.6-flash",
+    "gemini-3.5-transcribe": "gemini-3.6-flash",
+    "gemini-2.5-flash-preview-tts": "gemini-3.1-flash-tts-preview",
 }
 
 
@@ -24,9 +24,9 @@ def configured_model(name: str, default: str) -> str:
     return MODEL_ALIASES.get(value, value)
 
 
-STT_MODEL = configured_model("STT_MODEL", "gemini-2.5-flash")
-LLM_MODEL = configured_model("LLM_MODEL", "gemini-2.5-flash")
-TTS_MODEL = configured_model("TTS_MODEL", "gemini-2.5-flash-preview-tts")
+STT_MODEL = configured_model("STT_MODEL", "gemini-3.6-flash")
+LLM_MODEL = configured_model("LLM_MODEL", "gemini-3.6-flash")
+TTS_MODEL = configured_model("TTS_MODEL", "gemini-3.1-flash-tts-preview")
 TTS_VOICE = os.getenv("TTS_VOICE", "Puck")
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
