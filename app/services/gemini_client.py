@@ -11,16 +11,30 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-STT_MODEL = os.getenv("STT_MODEL", "gemini-3.5-transcribe")
-LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash")
-TTS_MODEL = os.getenv("TTS_MODEL", "gemini-3.1-flash-tts-preview")
+MODEL_ALIASES = {
+    # Keep older Render environment variables from selecting retired models.
+    "gemini-3.5-transcribe": "gemini-2.5-flash",
+    "gemini-3.6-flash": "gemini-2.5-flash",
+    "gemini-3.1-flash-tts-preview": "gemini-2.5-flash-preview-tts",
+}
+
+
+def configured_model(name: str, default: str) -> str:
+    value = os.getenv(name, default).strip()
+    return MODEL_ALIASES.get(value, value)
+
+
+STT_MODEL = configured_model("STT_MODEL", "gemini-2.5-flash")
+LLM_MODEL = configured_model("LLM_MODEL", "gemini-2.5-flash")
+TTS_MODEL = configured_model("TTS_MODEL", "gemini-2.5-flash-preview-tts")
 TTS_VOICE = os.getenv("TTS_VOICE", "Puck")
 
-AUDIO_DIR = Path("audio_output")
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+AUDIO_DIR = BASE_DIR / "audio_output"
 AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
-DATA_DIR = Path("data")
+DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
 DB_PATH = BASE_DIR / "tutor.db"

@@ -21,9 +21,9 @@ Built for the "LLMs Meet Speech" take-home assessment (Project 4: AI Voice Langu
 | Layer | Choice |
 |---|---|
 | Backend | FastAPI (Python) |
-| STT | Gemini (`gemini-3.6-flash`) |
-| LLM (grammar check) | Gemini (`gemini-3.6-flash`) |
-| TTS | Gemini (`gemini-3.1-flash-tts-preview`) |
+| STT | Gemini (`gemini-2.5-flash`) |
+| LLM (grammar check) | Gemini (`gemini-2.5-flash`) |
+| TTS | Gemini (`gemini-2.5-flash-preview-tts`) |
 | Database | SQLite (file-based, no server needed) |
 | Frontend | Vanilla HTML / CSS / JS, browser `MediaRecorder` API |
 
@@ -70,11 +70,11 @@ pip install -r requirements.txt
    
 GEMINI_API_KEY=your_key_here
 
-STT_MODEL=gemini-3.6-flash
+STT_MODEL=gemini-2.5-flash
 
-LLM_MODEL=gemini-3.6-flash
+LLM_MODEL=gemini-2.5-flash
 
-TTS_MODEL=gemini-3.1-flash-tts-preview
+TTS_MODEL=gemini-2.5-flash-preview-tts
 
 TTS_VOICE=Puck
 
@@ -122,7 +122,7 @@ For the **stretch goal**, every attempt is saved to a local SQLite database (`ap
 
 - **Stretch goal is partially implemented.** The app adapts *feedback tone* based on recent performance, but does not yet vary the actual difficulty of what the learner is asked to say — the learner still chooses their own sentences.
 - **Generated audio files are not automatically deleted** after being served; they accumulate in `audio_output/`. A production version would need a cleanup job or TTL.
-- The TTS model (`gemini-3.1-flash-tts-preview`) is in **preview status** as of this writing — behavior may change without notice.
+- The TTS model (`gemini-2.5-flash-preview-tts`) is in **preview status** as of this writing — behavior may change without notice.
 - No automated tests; all testing was manual, end-to-end.
 - Gemini model names changed mid-development (some initially-referenced models were deprecated during the build); `.env` values above reflect what is confirmed working as of submission.
 - **Live deployment (Render free tier) does not persist the SQLite database or generated audio files across server restarts/idle periods**, since Render's free tier doesn't support persistent disks. Within a single active session, history tracking works normally.

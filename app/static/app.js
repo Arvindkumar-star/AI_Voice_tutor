@@ -49,21 +49,25 @@ async function sendRecording() {
   formData.append("language", language);
   formData.append("audio", audioBlob, "recording.webm");
 
-  const response = await fetch("/api/practice", {
-    method: "POST",
-    body: formData,
-  });
+  try {
+    const response = await fetch("/api/practice", {
+      method: "POST",
+      body: formData,
+    });
 
-  if (!response.ok) {
-    const err = await response.json();
-    statusEl.textContent = "Error: " + err.detail;
-    return;
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      statusEl.textContent = "Error: " + (payload.detail || `Server error (${response.status})`);
+      return;
+    }
+
+    console.log("RESPONSE DATA:", payload);
+    showResult(payload);
+    statusEl.textContent = "Done.";
+  } catch (error) {
+    console.error("Practice request failed:", error);
+    statusEl.textContent = "Error: Could not reach the tutor service.";
   }
-
-  const data = await response.json();
-  console.log("RESPONSE DATA:", data);
-  showResult(data);
-  statusEl.textContent = "Done.";
 }
 
 function showResult(d) {

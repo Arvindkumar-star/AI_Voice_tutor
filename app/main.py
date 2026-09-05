@@ -1,4 +1,6 @@
 from pathlib import Path
+import logging
+from uuid import uuid4
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile, BackgroundTasks
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -7,6 +9,7 @@ from app.services.gemini_client import AUDIO_DIR, DATA_DIR
 from app.services.progress_store import init_db, save_attempt, get_history
 from app.services.tutor_pipeline import transcribe_audio, check_grammar, generate_speech
 
+logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).resolve().parent
 app = FastAPI(title="AI Voice Language Tutor", version="1.0.0")
 
@@ -44,7 +47,7 @@ async def practice(
         raise HTTPException(status_code=400, detail="Audio file is required.")
 
     suffix = Path(audio.filename).suffix or ".webm"
-    temp = DATA_DIR / f"input{suffix}"
+    temp = DATA_DIR / f"input_{uuid4().hex}{suffix}"
 
     try:
         temp.write_bytes(await audio.read())
@@ -76,6 +79,14 @@ async def practice(
             "had_errors": had_errors,
             "audio_url": f"/api/audio/{output.name}",
         }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Practice request failed")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Practice request failed: {exc}",
+        ) from exc
     finally:
         temp.unlink(missing_ok=True)
 
