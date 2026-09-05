@@ -27,6 +27,7 @@ recordBtn.onclick = async () => {
 
 stopBtn.onclick = () => {
   mediaRecorder.stop();
+  mediaRecorder.stream.getTracks().forEach((track) => track.stop());
   statusEl.textContent = "Processing...";
   document.getElementById("recDot").classList.remove("active");
   recordBtn.disabled = false;
