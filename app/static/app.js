@@ -50,13 +50,19 @@ async function sendRecording() {
   formData.append("language", language);
   formData.append("audio", audioBlob, "recording.webm");
 
-  try {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
     const response = await fetch("/api/practice", {
       method: "POST",
       body: formData,
     });
 
     const payload = await response.json().catch(() => ({}));
+    if (response.status === 503 && attempt === 0) {
+      statusEl.textContent = "Tutor service is busy; retrying...";
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      continue;
+    }
     if (!response.ok) {
       statusEl.textContent = "Error: " + (payload.detail || `Server error (${response.status})`);
       return;
@@ -65,9 +71,13 @@ async function sendRecording() {
     console.log("RESPONSE DATA:", payload);
     showResult(payload);
     statusEl.textContent = "Done.";
-  } catch (error) {
-    console.error("Practice request failed:", error);
-    statusEl.textContent = "Error: Could not reach the tutor service.";
+    return;
+    } catch (error) {
+      console.error("Practice request failed:", error);
+      if (attempt === 1) {
+        statusEl.textContent = "Error: Could not reach the tutor service.";
+      }
+    }
   }
 }
 

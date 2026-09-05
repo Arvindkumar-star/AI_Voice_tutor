@@ -83,9 +83,19 @@ async def practice(
         raise
     except Exception as exc:
         logger.exception("Practice request failed")
+        message = str(exc).upper()
+        status_code = 503 if any(
+            marker in message
+            for marker in ("503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED")
+        ) else 502
+        detail = (
+            "Gemini is temporarily busy. Please try again in a few seconds."
+            if status_code == 503
+            else f"Practice request failed: {exc}"
+        )
         raise HTTPException(
-            status_code=502,
-            detail=f"Practice request failed: {exc}",
+            status_code=status_code,
+            detail=detail,
         ) from exc
     finally:
         temp.unlink(missing_ok=True)

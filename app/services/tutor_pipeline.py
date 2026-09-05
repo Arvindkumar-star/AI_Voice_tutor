@@ -17,7 +17,7 @@ from app.services.gemini_client import (
 from app.services.progress_store import get_recent_error_rate
 
 logger = logging.getLogger(__name__)
-MAX_GEMINI_ATTEMPTS = 3
+MAX_GEMINI_ATTEMPTS = 5
 
 
 def generate_content_with_retry(*, model: str, contents, config=None):
@@ -37,7 +37,7 @@ def generate_content_with_retry(*, model: str, contents, config=None):
             if not retryable or attempt == MAX_GEMINI_ATTEMPTS - 1:
                 raise
 
-            delay = 2 ** attempt
+            delay = 2 ** (attempt + 1)
             logger.warning(
                 "Gemini model %s is temporarily unavailable; retrying in %ss (%s/%s)",
                 model,
