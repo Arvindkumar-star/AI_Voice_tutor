@@ -59,7 +59,9 @@ def generate_content_with_retry(*, model: str, fallback_model: str | None, conte
         if model_name != models[-1]:
             logger.warning("Falling back from Gemini model %s to %s", model_name, models[-1])
 
-    raise last_error
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("Failed to generate content: all attempts exhausted without response.")
 
 
 def write_pcm_to_wav(filepath: Path, pcm_data: bytes,
