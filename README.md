@@ -78,6 +78,11 @@ TTS_MODEL=gemini-3.1-flash-tts-preview
 
 TTS_VOICE=Puck
 
+# Optional fallbacks used automatically when a model is temporarily busy
+STT_FALLBACK_MODEL=gemini-3.5-transcribe
+LLM_FALLBACK_MODEL=gemini-3.5-flash-lite
+TTS_FALLBACK_MODEL=gemini-2.5-flash-preview-tts
+
 Get a key from [Google AI Studio](https://aistudio.google.com) → **Get API key**.
 
 4. **Run the server**

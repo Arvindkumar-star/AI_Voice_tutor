@@ -27,6 +27,9 @@ def configured_model(name: str, default: str) -> str:
 STT_MODEL = configured_model("STT_MODEL", "gemini-3.6-flash")
 LLM_MODEL = configured_model("LLM_MODEL", "gemini-3.6-flash")
 TTS_MODEL = configured_model("TTS_MODEL", "gemini-3.1-flash-tts-preview")
+STT_FALLBACK_MODEL = os.getenv("STT_FALLBACK_MODEL", "gemini-3.5-transcribe").strip()
+LLM_FALLBACK_MODEL = configured_model("LLM_FALLBACK_MODEL", "gemini-3.5-flash-lite")
+TTS_FALLBACK_MODEL = os.getenv("TTS_FALLBACK_MODEL", "gemini-2.5-flash-preview-tts").strip()
 TTS_VOICE = os.getenv("TTS_VOICE", "Puck")
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent

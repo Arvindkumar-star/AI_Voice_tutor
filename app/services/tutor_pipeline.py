@@ -11,6 +11,9 @@ from app.services.gemini_client import (
     STT_MODEL,
     LLM_MODEL,
     TTS_MODEL,
+    STT_FALLBACK_MODEL,
+    LLM_FALLBACK_MODEL,
+    TTS_FALLBACK_MODEL,
     TTS_VOICE,
     AUDIO_DIR,
 )
@@ -20,32 +23,42 @@ logger = logging.getLogger(__name__)
 MAX_GEMINI_ATTEMPTS = 5
 
 
-def generate_content_with_retry(*, model: str, contents, config=None):
-    """Retry temporary Gemini capacity/rate-limit errors before failing."""
-    for attempt in range(MAX_GEMINI_ATTEMPTS):
-        try:
-            kwargs = {"model": model, "contents": contents}
-            if config is not None:
-                kwargs["config"] = config
-            return client.models.generate_content(**kwargs)
-        except Exception as exc:
-            message = str(exc).upper()
-            retryable = any(
-                marker in message
-                for marker in ("503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED")
-            )
-            if not retryable or attempt == MAX_GEMINI_ATTEMPTS - 1:
-                raise
+def generate_content_with_retry(*, model: str, fallback_model: str | None, contents, config=None):
+    """Retry temporary errors, then use a lighter fallback model if needed."""
+    models = [model] if not fallback_model or fallback_model == model else [model, fallback_model]
+    last_error = None
 
-            delay = 2 ** (attempt + 1)
-            logger.warning(
-                "Gemini model %s is temporarily unavailable; retrying in %ss (%s/%s)",
-                model,
-                delay,
-                attempt + 1,
-                MAX_GEMINI_ATTEMPTS - 1,
-            )
-            time.sleep(delay)
+    for model_name in models:
+        for attempt in range(MAX_GEMINI_ATTEMPTS):
+            try:
+                kwargs = {"model": model_name, "contents": contents}
+                if config is not None:
+                    kwargs["config"] = config
+                return client.models.generate_content(**kwargs)
+            except Exception as exc:
+                last_error = exc
+                message = str(exc).upper()
+                retryable = any(
+                    marker in message
+                    for marker in ("503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED")
+                )
+                if not retryable:
+                    raise
+                if attempt < MAX_GEMINI_ATTEMPTS - 1:
+                    delay = 2 ** (attempt + 1)
+                    logger.warning(
+                        "Gemini model %s is temporarily unavailable; retrying in %ss (%s/%s)",
+                        model_name,
+                        delay,
+                        attempt + 1,
+                        MAX_GEMINI_ATTEMPTS - 1,
+                    )
+                    time.sleep(delay)
+
+        if model_name != models[-1]:
+            logger.warning("Falling back from Gemini model %s to %s", model_name, models[-1])
+
+    raise last_error
 
 
 def write_pcm_to_wav(filepath: Path, pcm_data: bytes,
@@ -72,6 +85,7 @@ def transcribe_audio(audio_path: Path, language: str) -> str:
 
     response = generate_content_with_retry(
         model=STT_MODEL,
+        fallback_model=STT_FALLBACK_MODEL,
         contents=[
             types.Part.from_bytes(data=audio_bytes, mime_type=mime_type),
             f"Transcribe the spoken {language} sentence exactly. Return only the raw transcript text, nothing else.",
@@ -100,6 +114,7 @@ Respond with ONLY valid JSON in this exact shape, no markdown, no extra text:
 
     response = generate_content_with_retry(
         model=LLM_MODEL,
+        fallback_model=LLM_FALLBACK_MODEL,
         contents=prompt,
     )
     raw = response.text.strip() if response.text else "{}"
@@ -119,6 +134,7 @@ def generate_speech(text: str, language: str) -> Path:
 
     response = generate_content_with_retry(
         model=TTS_MODEL,
+        fallback_model=TTS_FALLBACK_MODEL,
         contents=text,
         config=types.GenerateContentConfig(
             response_modalities=["AUDIO"],
