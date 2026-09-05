@@ -1,5 +1,7 @@
 import base64
 import json
+import logging
+import time
 import wave
 from pathlib import Path
 from uuid import uuid4
@@ -13,6 +15,37 @@ from app.services.gemini_client import (
     AUDIO_DIR,
 )
 from app.services.progress_store import get_recent_error_rate
+
+logger = logging.getLogger(__name__)
+MAX_GEMINI_ATTEMPTS = 3
+
+
+def generate_content_with_retry(*, model: str, contents, config=None):
+    """Retry temporary Gemini capacity/rate-limit errors before failing."""
+    for attempt in range(MAX_GEMINI_ATTEMPTS):
+        try:
+            kwargs = {"model": model, "contents": contents}
+            if config is not None:
+                kwargs["config"] = config
+            return client.models.generate_content(**kwargs)
+        except Exception as exc:
+            message = str(exc).upper()
+            retryable = any(
+                marker in message
+                for marker in ("503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED")
+            )
+            if not retryable or attempt == MAX_GEMINI_ATTEMPTS - 1:
+                raise
+
+            delay = 2 ** attempt
+            logger.warning(
+                "Gemini model %s is temporarily unavailable; retrying in %ss (%s/%s)",
+                model,
+                delay,
+                attempt + 1,
+                MAX_GEMINI_ATTEMPTS - 1,
+            )
+            time.sleep(delay)
 
 
 def write_pcm_to_wav(filepath: Path, pcm_data: bytes,
@@ -37,7 +70,7 @@ def transcribe_audio(audio_path: Path, language: str) -> str:
     mime_map = {"wav": "audio/wav", "mp3": "audio/mp3", "webm": "audio/webm", "m4a": "audio/mp4"}
     mime_type = mime_map.get(suffix, "audio/webm")
 
-    response = client.models.generate_content(
+    response = generate_content_with_retry(
         model=STT_MODEL,
         contents=[
             types.Part.from_bytes(data=audio_bytes, mime_type=mime_type),
@@ -65,7 +98,7 @@ Respond with ONLY valid JSON in this exact shape, no markdown, no extra text:
 {{"corrected": "the corrected sentence in {language}", "feedback": "one short sentence explaining what was fixed, or praise if no errors", "had_errors": true or false}}
 """
 
-    response = client.models.generate_content(
+    response = generate_content_with_retry(
         model=LLM_MODEL,
         contents=prompt,
     )
@@ -84,7 +117,7 @@ Respond with ONLY valid JSON in this exact shape, no markdown, no extra text:
 def generate_speech(text: str, language: str) -> Path:
     output_path = AUDIO_DIR / f"response_{uuid4().hex}.wav"
 
-    response = client.models.generate_content(
+    response = generate_content_with_retry(
         model=TTS_MODEL,
         contents=text,
         config=types.GenerateContentConfig(
